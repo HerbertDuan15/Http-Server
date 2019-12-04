@@ -19,6 +19,6 @@
 		"test"  : "test/"
 	},
 	"global" :{
-		"root" : "/home/linbird/workspace/Https-Server/"
+		"root" : "/home/linbird/workspace/Http-Server/"
 	}
  }

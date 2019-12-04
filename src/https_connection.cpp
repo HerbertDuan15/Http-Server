@@ -66,7 +66,7 @@ void set_for_https(struct evhttp * http){
     evhttp_set_bevcb (http, bevcb, ctx);//https
 }
 
-int 
+    int 
 serve_some_https (void)
 { 
     struct event_base *base;
@@ -77,9 +77,9 @@ serve_some_https (void)
         fprintf (stderr, "%s fail\n",(base ? "base" : "new"));
         return 1;
     }
-	
+
     set_for_https(http);
-	evhttp_set_gencb(http, default_cb, NULL);
+    evhttp_set_gencb (http, default_cb, NULL);
 
     if(! (handle = evhttp_bind_socket_with_handle (http, "0.0.0.0", config.port)))    { 
         fprintf (stderr, "couldn't bind to port %d. Exiting.\n", config.port);
@@ -134,17 +134,3 @@ int echo_info(struct evhttp_bound_socket *handle){
         return 1;
     }
 }
-
-
-
-// void error_exit (const char *fmt, ...){ 
-// 	va_list ap;
-//     va_start (ap, fmt);
-//     vfprintf (stderr, fmt, ap);
-//     va_end (ap);
-//     exit (EXIT_FAILURE);
-// }
-
-// void *my_zeroing_malloc (size_t howmuch){ 
-//     return calloc (1, howmuch); 
-// }

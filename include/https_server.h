@@ -89,6 +89,12 @@ typedef union
     struct sockaddr_in6 i6;
 } sock_hop;
 
+struct conn_ctx {
+    struct evhttp_connection *conn;
+    struct evhttp_request *req;
+    FILE *file;
+};
+
 char *
 load_file(const char * filename);
 
@@ -133,5 +139,8 @@ file_action(struct evhttp_request *req);
 
 void 
 media_action(struct evhttp_request *req);
+
+void 
+reply_chunk_transfer(struct evhttp_connection *conn, void *req);
 
 #endif

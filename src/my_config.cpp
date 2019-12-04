@@ -1,7 +1,7 @@
 #include "my_config.h"
 
 CONF_INFO::CONF_INFO(){
-	const char * file_path = "/home/linbird/workspace/https_server/cfg/config.json";
+	const char * file_path = "/home/linbird/workspace/Http-Server/cfg/config.json";
  	std::ifstream in(file_path, std::ios::binary);
 	if(in.is_open()){ 
 		Json::Value file_root;
