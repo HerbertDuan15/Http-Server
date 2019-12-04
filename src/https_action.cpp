@@ -149,7 +149,7 @@ file_download(struct evhttp_request *req){
     return reply_chunk_transfer(cctx->conn, cctx);
 }
 
-void 
+    void 
 reply_chunk_transfer(struct evhttp_connection *conn, void *ctx)
 {
     struct conn_ctx *cctx = (struct conn_ctx *)ctx;
@@ -162,15 +162,25 @@ reply_chunk_transfer(struct evhttp_connection *conn, void *ctx)
         struct evbuffer *buf = evbuffer_new();
         char *dummy = (char *) malloc(BLOCK_SIZE * sizeof(char));  // dynamically create the data in real cases.
         fread(dummy, sizeof(char), BLOCK_SIZE, cctx->file);
-        std::cout << "chunk" << std::endl
-            << dummy << std::endl;
-	    evbuffer_add(buf, dummy, BLOCK_SIZE);
+        // std::cout << "chunk" << std::endl
+        //     << dummy << std::endl;
+        std::stringstream data;
+        try {
+            copy(Base64EncodeIterator(dummy), 
+                    Base64EncodeIterator(dummy+BLOCK_SIZE),
+                    std::ostream_iterator<char>(data));
+        } catch ( ... ) {
+            std::cout << "base64 加密错误" << std::endl;
+            return;
+        }
+        std::string encode = data.str();
+        evbuffer_add(buf, encode.c_str(), encode.length());
+        std::cout << "base64加密数据块" << std::endl << encode << std::endl;
         evhttp_send_reply_chunk_with_cb(cctx->req, buf, reply_chunk_transfer, cctx);
         evbuffer_free(buf);
         free(dummy);
     }
 }
-
 
 void 
 file_upload(struct evhttp_request *req){
@@ -187,9 +197,19 @@ file_upload(struct evhttp_request *req){
     std::cout << "上传写入" << path << std::endl;
 
     if (file.is_open()){
-        for(auto it = lines.begin()+4; it < lines.end()-2; ++it)
-            file << (*it+ "\n");   
+        for(auto it = lines.begin()+4; it < lines.end()-2; ++it){
 
+            std::stringstream data;
+            try {
+                copy(Base64DecodeIterator(it->begin()), 
+                        Base64DecodeIterator(it->end()), 
+                        std::ostream_iterator<char>(data));
+            }catch ( ... ) {
+                std::cout << "base64 解密错误" << std::endl;
+                return;
+            }
+            file << data.str();
+        }
         // char cbuf[1024];
         // while(evbuffer_get_length(buf)) {
         //     int n = evbuffer_remove(buf, cbuf, sizeof(buf)-1);
@@ -271,8 +291,8 @@ default_cb(struct evhttp_request *req, void *arg){
     // int valid = auth(req);
     if(auth(req) == 1){
         // return send_page(req, config.root+config.source_root+config.default_page);
-    // else{
-                    std::cout << "请求地址  " << URI.size() << std::endl;
+        // else{
+        std::cout << "请求地址  " << URI.size() << std::endl;
         if(URI.size() <= 1)
             return send_page(req, (config.root + config.source_root + config.default_page));
         else{
@@ -289,32 +309,32 @@ default_cb(struct evhttp_request *req, void *arg){
         }
     }else
         return send_page(req, config.root+config.source_root+config.index_page);
-}
+    }
 
-void 
-send_page(struct evhttp_request *req, std::string page){
-    struct evbuffer *buf = evbuffer_new();
-    if (buf == NULL) 
-        return;
-    // std::cout << "send_page::page=" << page << std::endl; 
-    std::vector<std::string> sub_paths;
-    boost::split(sub_paths, page, boost::is_any_of( ",/." ), boost::token_compress_on);
-    std::string head_tail = "text/" + sub_paths.back() + "; charset=UTF-8";
-    evhttp_add_header(evhttp_request_get_output_headers(req), "Content-Type", head_tail.c_str());
-    evhttp_add_header(evhttp_request_get_output_headers(req), "Connection", "Keep-Alive");
-    // std::cout << "尝试读取文件" << page.c_str() << std::endl;
-    // std::cout << "当前路径" << getcwd(nullptr,0) << std::endl;    
-    // char * file = load_file(page.c_str());
-    char * file = load_file(page.c_str());
-    evbuffer_add_printf(buf, "%s", file);
-    // std::cout << "发送数据: \n" << buf << std::endl;
-    // printf("发送数据: \n %s",buf);
-    free(file);
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
-}
+    void 
+        send_page(struct evhttp_request *req, std::string page){
+            struct evbuffer *buf = evbuffer_new();
+            if (buf == NULL) 
+                return;
+            // std::cout << "send_page::page=" << page << std::endl; 
+            std::vector<std::string> sub_paths;
+            boost::split(sub_paths, page, boost::is_any_of( ",/." ), boost::token_compress_on);
+            std::string head_tail = "text/" + sub_paths.back() + "; charset=UTF-8";
+            evhttp_add_header(evhttp_request_get_output_headers(req), "Content-Type", head_tail.c_str());
+            evhttp_add_header(evhttp_request_get_output_headers(req), "Connection", "Keep-Alive");
+            // std::cout << "尝试读取文件" << page.c_str() << std::endl;
+            // std::cout << "当前路径" << getcwd(nullptr,0) << std::endl;    
+            // char * file = load_file(page.c_str());
+            char * file = load_file(page.c_str());
+            evbuffer_add_printf(buf, "%s", file);
+            // std::cout << "发送数据: \n" << buf << std::endl;
+            // printf("发送数据: \n %s",buf);
+            free(file);
+            evhttp_send_reply(req, HTTP_OK, "OK", buf);
+        }
 
-void send_page(struct evhttp_request *req, int states){
-    struct evbuffer *buf = evbuffer_new();
-    if (buf == NULL) return;
-    evhttp_send_error(req, states, std::to_string(states).c_str());
-}
+    void send_page(struct evhttp_request *req, int states){
+        struct evbuffer *buf = evbuffer_new();
+        if (buf == NULL) return;
+        evhttp_send_error(req, states, std::to_string(states).c_str());
+    }

@@ -7,12 +7,16 @@
 #include <iostream>
 #include <sstream>      // std::stringstream
 #include <string>
-#include <istream>
+#include <iterator>
+
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/uuid_generators.hpp>
- 
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+
 #include <signal.h>
 
 #include <sys/types.h>
@@ -94,6 +98,15 @@ struct conn_ctx {
     struct evhttp_request *req;
     FILE *file;
 };
+
+typedef boost::archive::iterators::transform_width
+        <boost::archive::iterators::binary_from_base64
+        <std::string::const_iterator>, 8, 6> 
+        Base64DecodeIterator;
+typedef boost::archive::iterators::base64_from_binary
+        <boost::archive::iterators::transform_width
+        <std::string::const_iterator, 6, 8>> 
+        Base64EncodeIterator;
 
 char *
 load_file(const char * filename);

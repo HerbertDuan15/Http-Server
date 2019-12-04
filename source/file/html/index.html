@@ -58,11 +58,14 @@ function uploadFile() {
 }
 
 function DownloadFile() {
-    var fd = new FormData();
-    var xhr = new XMLHttpRequest();
-    xhr.addEventListener("SUCCESS", uploadComplete, false);
-    xhr.open("GET", "action.file"); //修改成自己的接口
-    xhr.send(fd);
+    // var fd = new FormData();
+    // var xhr = new XMLHttpRequest();
+    // xhr.addEventListener("load", uploadComplete, false);
+    // xhr.open("GET", "action.file"); //修改成自己的接口
+    // xhr.send(fd);
+    $.get("action.file", function(result){
+        console.log(result)
+    })
 }
 
 function uploadProgress(evt) {
