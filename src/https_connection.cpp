@@ -79,8 +79,17 @@ serve_some_https (void)
     }
 
     set_for_https(http);
+<<<<<<< Updated upstream
     evhttp_set_gencb (http, default_cb, NULL);
 
+=======
+    /**
+    *evhttp_set_cb为每个特定的URI指定一个回调函数
+    *evhttp_set_gencb 注册一个通用回调函数，在没有为指定的URI指定回调函数的情况下，此函数会被调用
+    */
+	evhttp_set_gencb(http, default_cb, NULL);
+    //绑定地址和端口
+>>>>>>> Stashed changes
     if(! (handle = evhttp_bind_socket_with_handle (http, "0.0.0.0", config.port)))    { 
         fprintf (stderr, "couldn't bind to port %d. Exiting.\n", config.port);
         return 1;
