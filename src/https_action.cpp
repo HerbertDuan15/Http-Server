@@ -24,6 +24,64 @@ content_type {
         { "pdf", "application/pdf" },
         { "ps", "application/postsript" }};
 
+int php_htoi(char *s)  
+{  
+    int value;  
+    int c;  
+  
+    c = ((unsigned char *)s)[0];  
+    if (isupper(c))  
+        c = tolower(c);  
+    value = (c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10) * 16;  
+  
+    c = ((unsigned char *)s)[1];  
+    if (isupper(c))  
+        c = tolower(c);  
+    value += c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10;  
+  
+    return (value);  
+}  
+/* }}} */  
+  
+/* {{{ URL解码，提取自PHP 5.2.17 
+   用法：string urldecode(string str_source) 
+   时间：2012-8-14 By Dewei 
+*/  
+std::string urldecode(std::string &str_source)  
+{  
+    char const *in_str = str_source.c_str();  
+    int in_str_len = strlen(in_str);  
+    int out_str_len = 0;  
+    std::string out_str;  
+    char *str;  
+  
+    str = strdup(in_str);  
+    char *dest = str;  
+    char *data = str;  
+  
+    while (in_str_len--) {  
+        if (*data == '+') {  
+            *dest = ' ';  
+        }  
+        else if (*data == '%' && in_str_len >= 2 && isxdigit((int) *(data + 1))   
+            && isxdigit((int) *(data + 2))) {  
+                *dest = (char) php_htoi(data + 1);  
+                data += 2;  
+                in_str_len -= 2;  
+        } else {  
+            *dest = *data;  
+        }  
+        data++;  
+        dest++;  
+    }  
+    *dest = '\0';  
+    out_str_len =  dest - str;  
+    out_str = str;  
+    free(str);  
+    return out_str;  
+}  
+/* }}} */  
+
 void
 login_action(struct evhttp_request *req){
     if(auth(req) == 1)
@@ -133,6 +191,7 @@ file_download(struct evhttp_request *req){
     std::string filename = "2019-07-23-165628.webm";
     std::string path = config.root + config.data_root + filename;
     std::cout << "下载读出:" << path << std::endl;
+    // evhttp_add_header(evhttp_request_get_output_headers(req), "Content-Type", "text/plain");
     evhttp_add_header(evhttp_request_get_output_headers(req), "Content-Type", "video/webm");
     // evhttp_add_header(evhttp_request_get_output_headers(req), "Connection", "Keep-Alive");
     // evhttp_add_header(evhttp_request_get_output_headers(req), "Transfer-Encoding", "chunked");
@@ -161,6 +220,7 @@ reply_chunk_transfer(struct evhttp_connection *conn, void *ctx)
     }else{
         struct evbuffer *buf = evbuffer_new();
         char *dummy = (char *) malloc(BLOCK_SIZE * sizeof(char));  // dynamically create the data in real cases.
+        memset(dummy, 0, BLOCK_SIZE * sizeof(char));
         fread(dummy, sizeof(char), BLOCK_SIZE, cctx->file);
         // std::cout << "chunk" << std::endl
         //     << dummy << std::endl;
@@ -175,6 +235,8 @@ reply_chunk_transfer(struct evhttp_connection *conn, void *ctx)
         }
         std::string encode = data.str();
         evbuffer_add(buf, encode.c_str(), encode.length());
+        // evbuffer_add(buf, dummy, strlen(dummy));
+        // std::cout << "传输数据块" << std::endl << dummy << "结束块" << std::endl;
         std::cout << "base64加密数据块" << std::endl << encode << std::endl;
         evhttp_send_reply_chunk_with_cb(cctx->req, buf, reply_chunk_transfer, cctx);
         evbuffer_free(buf);
@@ -185,44 +247,58 @@ reply_chunk_transfer(struct evhttp_connection *conn, void *ctx)
 void 
 file_upload(struct evhttp_request *req){
     struct evbuffer *buf = evhttp_request_get_input_buffer(req);
-    char *payload = (char *) evbuffer_pullup (buf, -1);
-    std::string head_info(payload);
     int post_data_len = evbuffer_get_length(buf);
-    std::vector<std::string> lines;
-    boost::split(lines, head_info, boost::is_any_of( "\n" ), boost::token_compress_on);
-    std::vector<std::string> names;
-    boost::split(names, lines[1], boost::is_any_of( "\"" ), boost::token_compress_on);
-    std::string path = config.root + config.data_root + names[names.size()-2];
+    std::cout << "上传数据大小" << post_data_len << std::endl;
+    char * data = (char *) malloc(post_data_len * sizeof(char));
+    evbuffer_remove(buf, data, post_data_len);
+    std::string urlcode(data);
+    std::string base64code = urldecode(urlcode);
+    // std::cout << "上传内容" << base64code << std::endl;
+    // std::cout << "数据内容" << t_dat << std::endl;
+    std::vector<std::string> datas;
+    boost::split(datas, base64code, boost::is_any_of( "&" ), boost::token_compress_on);
+//     boost::regex filename_expression("filename=");   
+//     boost::regex content_expression("(base64*)");   
+//     boost::cmatch filename_match;
+//     if(boost::regex_match(datas[0].c_str(), filename_match, filename_expression))//regex_match:匹配算法，用于测试一个字符串是否和正则式匹配   
+//     {  
+//         for(int i=0;i<filename_match.size();i++)  
+//                     std::cout<<"file"<<filename_match[i].str()<< std::endl;  
+//     }
+//     boost::cmatch content_match;  
+//     if(boost::regex_match(datas[1].c_str(), content_match, content_expression))//regex_match:匹配算法，用于测试一个字符串是否和正则式匹配   
+//     {  
+//         for(int i=0;i<content_match.size();i++)  
+//                     std::cout<<"content"<<content_match[i].str()<< std::endl;  
+//     }
+    std::string filename(datas[0].begin()+strlen("filename="), datas[0].end());
+    std::string path = config.root + config.data_root + filename;
+    std::string content_match(datas[1].begin()+datas[1].find("base64,")+7, datas[1].end());
+    std::stringstream content;
+    try {
+        copy(Base64DecodeIterator(content_match.begin()), 
+                Base64DecodeIterator(content_match.end()), 
+                std::ostream_iterator<char>(content));
+    }catch (...){
+    //        try {
+    //     copy(Base64DecodeIterator(content_match[0].begin()), 
+    //             Base64DecodeIterator(content_match[0].end()), 
+    //             std::ostream_iterator<char>(content));
+    // }catch (...){
+        std::cout << "base64解密错误" << std::endl;
+        return;
+    }
+    // std::cout << std::endl << "解密后数据" << content.str() << std::endl;
+    // std::string path = config.root + config.data_root + "test";
     std::ofstream file(path);
     std::cout << "上传写入" << path << std::endl;
-
     if (file.is_open()){
-        for(auto it = lines.begin()+4; it < lines.end()-2; ++it){
-
-            std::stringstream data;
-            try {
-                copy(Base64DecodeIterator(it->begin()), 
-                        Base64DecodeIterator(it->end()), 
-                        std::ostream_iterator<char>(data));
-            }catch ( ... ) {
-                std::cout << "base64 解密错误" << std::endl;
-                return;
-            }
-            file << data.str();
-        }
-        // char cbuf[1024];
-        // while(evbuffer_get_length(buf)) {
-        //     int n = evbuffer_remove(buf, cbuf, sizeof(buf)-1);
-        //     if(n > 0)
-        //        file << cbuf;
-        //         // fwrite(cbuf, 1, n, stdout);
-        //         for(int i = 0; i < n; ++i)
-        //         printf("%X",cbuf+i);
-        // }
+        file << content.str();
         file.close();
     }
+    free(data);
     struct evbuffer *rbuf = evbuffer_new();
-    evbuffer_add_printf(rbuf, "received file %s", names[names.size()-2].c_str());
+    evbuffer_add_printf(rbuf, "received file %s", filename.c_str());
     evhttp_send_reply(req, HTTP_OK, "SUCCESS", rbuf);
 }
 

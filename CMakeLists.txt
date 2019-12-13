@@ -20,20 +20,21 @@ ADD_DEFINITIONS(
 
 
 SET(CXX_FLAGS
- -Wall
- -Wextra
- -Werror
- -fpermissive
- -Wno-unused-parameter
- -std=c++11
- -lpthread 
- -levent 
- -lm 
- -lssl 
- -lcrypto 
- -levent_openssl 
- -lstdc++ 
- -lboost_system
+    # -Wall
+    # -Wextra
+    # -Werror
+    # -fpermissive
+    # -Wno-unused-parameter
+    # -std=c++11
+    # -lpthread 
+    # -lboost_regex
+    # -levent 
+    # -lm 
+    # -lssl 
+    # -lcrypto 
+    # -levent_openssl 
+    # -lstdc++ 
+    # -lboost_system
  )
 
 #SET(CMAKE_CXX_FLAGS_DEBUG "-g -O0")

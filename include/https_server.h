@@ -16,6 +16,7 @@
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
+#include <boost/regex.hpp>   
 
 #include <signal.h>
 
@@ -107,6 +108,12 @@ typedef boost::archive::iterators::base64_from_binary
         <boost::archive::iterators::transform_width
         <std::string::const_iterator, 6, 8>> 
         Base64EncodeIterator;
+
+std::string 
+urldecode(std::string &str_source);
+
+int 
+php_htoi(char *s);
 
 char *
 load_file(const char * filename);
